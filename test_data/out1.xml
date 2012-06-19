@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+    <title>Alice's Adventures in Wonderland</title>
+    <authors>Carroll, Lewis</authors>
+    <page>
+        <title>Title Page</title>
+        <section>
+            <!--
+            How do you want to handle such rich HTML markup?
+            For now I've just changed img tag to image and left everything else as-is.
+            -->
+            <div class="body">
+                <image imagefile="images/logo-feedbooks-tiny.png" label="Feedbooks"></image>
+                <h1>Alice's Adventures in Wonderland</h1>
+                <h2>Lewis Carroll</h2>
+            </div>
+            <div class="infos"><br />
+                <b>Published:</b> 1897<br />
+                <b>Categorie(s):</b> Fiction, Fantasy, Juvenile<br />
+                <b>Source:</b> Wikisource</div>
+
+        </section>
+    </page>
+    <page>
+        <title>About</title>
+        <section>
+            <!--
+            Again, for now I've left markup as-is.
+            -->
+
+            <div class="body">
+                <div class="aboutauthor"><strong>About Carroll:</strong><br />
+                    <p>Charles Lutwidge</p>
+                </div>
+                <div class="also"><strong>Also available on Feedbooks
+                    Carroll:</strong>
+                    <ul>
+                        <li><i><a href=
+                                          "http://generation.feedbooks.com/book/23.epub">Through the Looking
+                            Glass (And What Alice Found There)</a></i> (1871)</li>
+                        <li><i><a href=
+                                          "http://generation.feedbooks.com/book/2203.epub">Sylvie and
+                            Bruno</a></i> (1889)</li>
+                    </ul>
+                </div>
+                <div class="also"><strong>Note:</strong> This book is brought to
+                    you by Feedbooks<br />
+                    <a href=
+                               "http://www.feedbooks.com">http://www.feedbooks.com</a><br />
+                    Strictly for personal use, do not use this file for commercial
+                    purposes.</div>
+            </div>
+
+        </section>
+    </page>
+    <page>
+            <title>Chapter 1 Down the Rabbit Hole</title>
+            <section>
+                <p>Alice</p>
+                <p>So she</p>
+            </section>
+    </page>
+
+    <page>
+        <title>Chapter 2 The Pool of Tears</title>
+        <section>
+            <p>“Curiouser and curiouser!” cried Alice</p>
+            <p>And she went on planning to herself how she would manage it.</p>
+            <p>&#160;? Hearthrug,</p>
+        </section>
+    </page>
+
+</document>
