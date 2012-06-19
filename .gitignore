@@ -1,3 +1,4 @@
 .svn/
 .idea/
-.pyc
+*.pyc
+convert.py
