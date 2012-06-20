@@ -142,6 +142,8 @@ class EpubArchive(object):
     def _get_content_path(self, opf_filename):
         '''Return the content path, which may be a named subdirectory or could be at the root of
         the archive'''
+        if os.path.dirname(opf_filename) == "":
+            return ""
         return os.path.dirname(opf_filename) + "/"
 
     def _get_toc(self, opf, items, content_path):
