@@ -356,19 +356,48 @@ class EpubPage(object):
     '''Usually an individual page in the ebook.'''
     
     def __init__(self, title, idref, filename, epubfile, archive, order):
-        self.title    = title
+        self.title_in_toc = title
         self.idref    = idref
         self.filename = filename
-        self.epubfile = epubfile
+        self.page_content = epubfile
         self.archive  = archive
         self.order    = order or 1
-        
+        self.page_content_parsed = self.parse_page_content(self.page_content)
+        self.title_tag = self.page_content_parsed.find('.//title')
+
+    def parse_page_content(self, page_content):
+        try:
+            import lxml.html.soupparser
+            html = lxml.html.soupparser.fromstring(page_content)
+            body = html.find('.//body')
+            if body is None:
+                raise UnknownContentException()
+# for simplicity we decided to use BeatifulSoup parser for now
+#            html = etree.XML(page_content, etree.XMLParser())
+#            body = html.find('{%s}body' % NS['html'])
+#            if body is None:
+#                raise UnknownContentException()
+        except (ExpatError, etree.XMLSyntaxError, UnknownContentException):
+            raise
+#            logging.warning('Was not valid XHTML; trying with BeautifulSoup')
+#            try:
+#                import lxml.html.soupparser
+#                html = lxml.html.soupparser.fromstring(page_content)
+#                body = html.find('.//body')
+#                if body is None:
+#                    raise
+#                import pdb;pdb.set_trace()
+#            except:
+#                # Give up
+#                logging.error("Giving up on this content")
+#                raise UnknownContentException()
+        return html
+
 
     # XHTML content that has been sanitized.  This isn't done until
     # the user requests to access the file or until the automated
     # process hits it, whichever occurs first
     #processed_content = models.TextField(null=True)
-
 
     def render(self, user=None):
         '''If we don't have any processed content, process it and cache the
@@ -377,32 +406,9 @@ class EpubPage(object):
         if hasattr(self,'processed_content'):
             return self.processed_content
 
-        f = self.epubfile
-        try:
-            xhtml = etree.XML(f, etree.XMLParser())
-            body = xhtml.find('{%s}body' % NS['html'])
-            head = xhtml.find('{%s}head' % NS['html'])
-            if body is None:
-                raise UnknownContentException()
-        except (ExpatError, etree.XMLSyntaxError, UnknownContentException):
-            logging.warning('Was not valid XHTML; trying with BeautifulSoup')
-            try:
-                html = lxml.html.soupparser.fromstring(f)
-                body = html.find('.//body')
-                head = html.find('.//head')
-                if body is None:
-                    raise
-            except:
-                # Give up
-                logging.error("Giving up on this content")
-                raise UnknownContentException()
-
-       
-        headTitle = xhtml.find('.//title')
-        if headTitle is not None:
-          print "TITLE: " + headTitle + "\n\n"
-          
-        body = self._clean_xhtml(body)
+        if self.title_tag is not None:
+          print "TITLE: " + self.title_tag.text + "\n\n"
+        body = self._clean_xhtml(self.page_content_parsed.find('.//body'))
         return lxml.html.tostring(body, encoding=ENC, method="html")
 
 
