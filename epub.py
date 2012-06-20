@@ -25,6 +25,11 @@ class EpubArchive(object):
 
     def __init__(self, basename):
         self.name = basename
+        self.title = None
+        self.opf = None
+        self.authors = None
+        self.toc = None
+        self.pages = []
         self.explode()
 
     def safe_title(self):
@@ -122,7 +127,6 @@ class EpubArchive(object):
 
         self.authors  = self._get_authors(parsed_opf)
         self.title    = self._get_title(parsed_opf)
-
         self._get_content(z, parsed_opf, parsed_toc, items, content_path)
         #self._get_images(z, items, content_path)
 
@@ -138,12 +142,7 @@ class EpubArchive(object):
     def _get_content_path(self, opf_filename):
         '''Return the content path, which may be a named subdirectory or could be at the root of
         the archive'''
-        paths = opf_filename.split('/')
-        if len(paths) == 1:
-            # We have no extra path info; this document's content is at the root
-            return ''
-        else:
-            return '/'.join(paths[:-1]) + '/'
+        return os.path.dirname(opf_filename) + "/"
 
     def _get_toc(self, opf, items, content_path):
         '''Parse the opf file to get the name of the TOC
@@ -328,7 +327,7 @@ class EpubArchive(object):
 
 
     def _get_metadata(self, metadata_tag, opf, plural=False, as_string=False, as_list=False):
-        '''Returns a metdata item's text content by tag name, or a list if mulitple names match.
+        '''Returns a metadata item's text content by tag name, or a list if mulitple names match.
         If as_string is set to True, then always return a comma-delimited string.'''
         if self._parsed_metadata is None:
             try:
