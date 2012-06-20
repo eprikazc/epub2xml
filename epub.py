@@ -271,8 +271,6 @@ class EpubArchive(object):
             else:
                 nav_map[filename] = n
 
-        pages = []
-
         idrefs_already_processed = set()
 
         for ref in refs:
@@ -287,7 +285,7 @@ class EpubArchive(object):
                 filename = '%s%s' % (content_path, href)
                 try:
                     content = archive.read(filename)
-                except:
+                except Exception:
                     raise InvalidEpubException('Could not find file %s in archive even though it was listed in the OPF file' % filename,
                                                archive=self)
 
@@ -309,13 +307,10 @@ class EpubArchive(object):
                         'file':content,
                         'archive':self,
                         'order':order}
-                pages.append(page)
+                self.pages.append(self._create_page(
+                    page['title'], page['idref'], page['filename'], page['file'], page['archive'], page['order']
+                ))
 
-        self.pages = []
-        for p in pages:
-            #logging.debug(p['filename'])
-            self.pages.append( self._create_page(p['title'], p['idref'], p['filename'], p['file'], p['archive'], p['order']) )
-        
 
     def _create_page(self, title, idref, filename, f, archive, order):
         '''Create an HTML page and associate it with the archive'''
