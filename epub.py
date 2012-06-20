@@ -297,7 +297,7 @@ class EpubArchive(object):
                     title = nav_map[href].title()
                     order = nav_map[href].order()
                 else:
-                    title = href.rpartition('/')[2]
+                    title = href.split('/')[-1]
                     order = 0
 
                 page = {'title': title,

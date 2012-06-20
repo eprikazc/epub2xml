@@ -251,10 +251,7 @@ class NavPoint():
 
 
     def title(self):
-        text = self.element.findtext('.//{%s}text' % (NS['ncx']))
-        if text:
-            return text.strip()
-        return ""
+        text = self.element.findtext('.//{%s}text' % (NS['ncx']), "").strip()
 
     def order(self):
         try:
