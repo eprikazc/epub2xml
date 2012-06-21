@@ -393,6 +393,29 @@ class EpubPage(object):
 #                raise UnknownContentException()
         return html
 
+    def get_page_title(self):
+        """
+        1. If there is a non-empty <title></title> header in the page and there is no other pages
+        with the same <title>, use it as the title.
+        Otherwise:
+        2. If there is a h1..h6 element in the body before any other text, and
+        if this h1..h6 is the biggest header in the page, and if this header
+        is unique (there is no other header of the same level in the page),
+        use it as the title.
+        Otherwise:
+        3. Use the NCX navPoint->navLabel->text if non-empty
+        Otherwise:
+        4. Use the name from the spine
+        """
+        if [page.title_tag.text for page in self.archive.pages].count(self.title_tag.text) == 1:
+            return self.title_tag.text
+        elif self.page_content_parsed.find(".//h1"):
+            #TODO: fix the way we search first heading
+            return self.page_content_parsed.find(".//h1").text
+        elif self.title_in_toc:
+            return self.title_in_toc
+        else:
+            return self.idref
 
     # XHTML content that has been sanitized.  This isn't done until
     # the user requests to access the file or until the automated
@@ -407,7 +430,7 @@ class EpubPage(object):
             return self.processed_content
 
         if self.title_tag is not None:
-          print "TITLE: " + self.title_tag.text + "\n\n"
+          print "TITLE: " + self.get_page_title() + "\n\n"
         body = self._clean_xhtml(self.page_content_parsed.find('.//body'))
         return lxml.html.tostring(body, encoding=ENC, method="html")
 
