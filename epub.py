@@ -423,10 +423,11 @@ class EpubPage(object):
         """
         Parses page content and builds hierarchy of sections judging on h1 - h6 tags
         """
+        heading_tags = ("h1", "h2", "h3", "h4", "h5", "h6")
         current_section = EpubPageSection(self)
         current_section.bindToParent(None)
         for elem in self.page_content_parsed.find(".//body").iter():
-            if elem.tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            if elem.tag in heading_tags:
                 heading_text = " ".join([t.strip() for t in elem.itertext()])
                 heading_level = int(elem.tag[1])
                 if current_section.title is None and not current_section.has_text_before_title:
@@ -455,7 +456,9 @@ class EpubPage(object):
                 and elem.text.strip()
                 ):
                     current_section.has_text_before_title = True
-                    if elem.getparent() not in current_section.content_elements:
+                    if (elem.getparent() not in current_section.content_elements
+                        and elem.getparent().tag not in heading_tags # skip children of heading tag, as they are part of the title
+                    ):
                         current_section.content_elements.append(elem)
 
     # XHTML content that has been sanitized.  This isn't done until
@@ -504,6 +507,7 @@ class EpubPage(object):
 
 
 class EpubPageSection(object):
+
     def __init__(self, page, title = None):
         self.has_text_before_title = False
         self.title = None
@@ -512,6 +516,7 @@ class EpubPageSection(object):
         self.children_sections = []
         self.content_elements = []
         self.page = page
+
     def bindToParent(self, parent_section):
         """Binds current section to some parent section. If parent section is None - bind it to page itself"""
         self.parent_section = parent_section
@@ -519,6 +524,7 @@ class EpubPageSection(object):
             self.page.sections.append(self)
         else:
             parent_section.children_sections.append(self)
+
     def findAncestorWithTitleLevelLessThan(self, level):
         """Does what function name says. Result is used as parent for new section with title_level = level"""
         current_section = self
