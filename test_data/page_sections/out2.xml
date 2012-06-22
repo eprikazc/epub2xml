@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+    <title>Alice's Adventures in Wonderland</title>
+    <authors>Carroll, Lewis</authors>
+    <page>
+        <section>
+            <title>Git Basics</title>
+            <p>So, what is Git in a nutshell?</p>
+        </section>
+        <section>
+            <title>Snapshots, Not Differences</title>
+            <p>The major difference between Git and any other VCS (Subversion and friends included) is the way Git thinks about its data.</p>
+        </section>
+        <section>
+            <title>Nearly Every Operation Is Local</title>
+            <p>Most operations in Git only need local files and resources to operate - generally no information is needed from another computer on your network.</p>
+        </section>
+        <section>
+            <title>Git Has Integrity</title>
+            <p>Everything in Git is check-summed before it is stored and is then referred to by that checksum.</p>
+        </section>
+        <section>
+            <title>Git Generally Only Adds Data</title>
+            <p>When you do actions in Git, nearly all of them only add data to the Git database.</p>
+        </section>
+        <section>
+            <title>The Three States</title>
+            <p>Now, pay attention. This is the main thing to remember about Git if you want the rest of your learning process to go smoothly.</p>
+        </section>
+    </page>
+
+
+</document>
