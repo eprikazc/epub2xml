@@ -364,6 +364,8 @@ class EpubPage(object):
         self.order    = order or 1
         self.page_content_parsed = self.parse_page_content(self.page_content)
         self.title_tag = self.page_content_parsed.find('.//title')
+        self.sections = []
+        self.parse_sections()
 
     def parse_page_content(self, page_content):
         try:
@@ -409,13 +411,52 @@ class EpubPage(object):
         """
         if [page.title_tag.text for page in self.archive.pages].count(self.title_tag.text) == 1:
             return self.title_tag.text
-        elif self.page_content_parsed.find(".//h1"):
-            #TODO: fix the way we search first heading
-            return self.page_content_parsed.find(".//h1").text
+        elif len(self.sections) == 1 and self.sections[0].title:
+            return self.sections[0].title
         elif self.title_in_toc:
             return self.title_in_toc
         else:
             return self.idref
+
+
+    def parse_sections(self):
+        """
+        Parses page content and builds hierarchy of sections judging on h1 - h6 tags
+        """
+        current_section = EpubPageSection(self)
+        current_section.bindToParent(None)
+        for elem in self.page_content_parsed.find(".//body").iter():
+            if elem.tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+                heading_text = " ".join([t.strip() for t in elem.itertext()])
+                heading_level = int(elem.tag[1])
+                if current_section.title is None and not current_section.has_text_before_title:
+                    current_section.title = heading_text
+                    current_section.title_level = heading_level
+                else:
+                    new_section = EpubPageSection(self, heading_text)
+                    new_section.title = heading_text
+                    new_section.title_level = heading_level
+                    if current_section.title is None:
+                        new_section.bindToParent(None)
+                    elif new_section.title_level > current_section.title_level:
+                        new_section.bindToParent(current_section)
+                    elif new_section.title_level == current_section.title_level:
+                        new_section.bindToParent(current_section.parent_section)
+                    else:
+                        parent = current_section.findAncestorWithTitleLevelLessThan(
+                            new_section.title_level
+                        )
+                        new_section.bindToParent(parent)
+                    current_section = new_section
+            else:
+                if (not current_section.has_text_before_title
+                and current_section.title is None
+                and elem.text is not None
+                and elem.text.strip()
+                ):
+                    current_section.has_text_before_title = True
+                    if elem.getparent() not in current_section.content_elements:
+                        current_section.content_elements.append(elem)
 
     # XHTML content that has been sanitized.  This isn't done until
     # the user requests to access the file or until the automated
@@ -461,6 +502,31 @@ class EpubPage(object):
 
         return xhtml
 
+
+class EpubPageSection(object):
+    def __init__(self, page, title = None):
+        self.has_text_before_title = False
+        self.title = None
+        self.title_level = 0
+        self.parent_section = None
+        self.children_sections = []
+        self.content_elements = []
+        self.page = page
+    def bindToParent(self, parent_section):
+        """Binds current section to some parent section. If parent section is None - bind it to page itself"""
+        self.parent_section = parent_section
+        if parent_section is None:
+            self.page.sections.append(self)
+        else:
+            parent_section.children_sections.append(self)
+    def findAncestorWithTitleLevelLessThan(self, level):
+        """Does what function name says. Result is used as parent for new section with title_level = level"""
+        current_section = self
+        while current_section is not None:
+            if current_section.parent_section and current_section.parent_section.title_level < level:
+                return current_section.parent_section
+            current_section = current_section.parent_section
+        return current_section # i.e. None, there is no such ancestor
 
 class InvalidBinaryException(InvalidEpubException):
     pass
