@@ -68,28 +68,27 @@ class TOC():
             for np in self.parsed.xpath('//ncx:navPoint', namespaces=NS):
                 navpoint_map.setdefault(np.get('id'),list()).append(np)
 
-            item_map = dict()
+            manifest_item_map = dict()
             for item in self.spine.xpath('//opf:item', namespaces=NS):
-                item_map[item.get('id')] = item
+                manifest_item_map[item.get('id')] = item
             
                 
-
-            for itemref in self.spine.xpath('//opf:spine/opf:itemref', namespaces=NS):
-                item_ref = item_map.get(itemref.get('idref'))
+            for spine_itemref in self.spine.xpath('//opf:spine/opf:itemref', namespaces=NS):
+                manifest_item_ref = manifest_item_map.get(spine_itemref.get('idref'))
                 # If this is null, we have a pointer to a non-existent item;
                 # bad but ignorable
-                if item_ref is None:
+                if manifest_item_ref is None:
                     continue
-                item = item_ref
+                item = manifest_item_ref
                 # Get the navpoint that corresponds to this, if any!
                 try:
-                    np = navpoint_map.get(itemref.get('idref'),[])[0]
+                    np = navpoint_map.get(spine_itemref.get('idref'),[])[0]
                     navpoint = NavPoint(np, doc_title=self.doc_title)
                 except IndexError:
                     navpoint = None
                 self.items.append(Item(item.get('id'), item.get('href'), item.get('media-type'), 
                                        navpoint=navpoint,
-                                       linear=itemref.get('linear'),
+                                       linear=spine_itemref.get('linear'),
                                        toc=self))
 
             
