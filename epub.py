@@ -496,7 +496,7 @@ class EpubPage(object):
         """
         heading_tags = ("h1", "h2", "h3", "h4", "h5", "h6")
         current_section = EpubPageSection(self)
-        current_section.bindToParent(None)
+        current_section.bind_to_parent(None)
         for elem in self.page_content_parsed.find(".//body").iter():
             if elem.tag in heading_tags:
                 heading_text = " ".join([t.strip() for t in elem.itertext()])
@@ -509,16 +509,16 @@ class EpubPage(object):
                     new_section.title = heading_text
                     new_section.title_level = heading_level
                     if current_section.title is None:
-                        new_section.bindToParent(None)
+                        new_section.bind_to_parent(None)
                     elif new_section.title_level > current_section.title_level:
-                        new_section.bindToParent(current_section)
+                        new_section.bind_to_parent(current_section)
                     elif new_section.title_level == current_section.title_level:
-                        new_section.bindToParent(current_section.parent_section)
+                        new_section.bind_to_parent(current_section.parent_section)
                     else:
-                        parent = current_section.findAncestorWithTitleLevelLessThan(
+                        parent = current_section.find_ancestor_with_title_level_less_than(
                             new_section.title_level
                         )
-                        new_section.bindToParent(parent)
+                        new_section.bind_to_parent(parent)
                     current_section = new_section
             else:
                 if (not current_section.has_text_before_title
@@ -588,7 +588,7 @@ class EpubPageSection(object):
         self.content_elements = []
         self.page = page
 
-    def bindToParent(self, parent_section):
+    def bind_to_parent(self, parent_section):
         """Binds current section to some parent section. If parent section is None - bind it to page itself"""
         self.parent_section = parent_section
         if parent_section is None:
@@ -596,7 +596,7 @@ class EpubPageSection(object):
         else:
             parent_section.children_sections.append(self)
 
-    def findAncestorWithTitleLevelLessThan(self, level):
+    def find_ancestor_with_title_level_less_than(self, level):
         """Does what function name says. Result is used as parent for new section with title_level = level"""
         current_section = self
         while current_section is not None:
