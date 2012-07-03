@@ -23,13 +23,14 @@ class EpubArchive(object):
     _parsed_metadata = None
     _parsed_toc = None
 
-    def __init__(self, basename):
+    def __init__(self, basename, use_spine_as_toc=True):
         self.name = basename
         self.title = None
         self.opf = None
         self.authors = None
         self.toc = None
         self.pages = []
+        self.use_spine_as_toc = use_spine_as_toc
         self.explode()
 
     def safe_title(self):
@@ -127,7 +128,10 @@ class EpubArchive(object):
 
         self.authors  = self._get_authors(parsed_opf)
         self.title    = self._get_title(parsed_opf)
-        self._get_content(z, parsed_opf, parsed_toc, items, content_path)
+        if self.use_spine_as_toc:
+            self._get_content(z, parsed_opf, parsed_toc, items, content_path)
+        else:
+            self._get_content_from_nav_points(z, content_path)
         #self._get_images(z, items, content_path)
 
 
@@ -248,6 +252,41 @@ class EpubArchive(object):
                 #archive=self)
             #image.save()
 
+    def _get_content_from_nav_points(self, archive, content_path):
+        toc_tree = self.get_toc().tree
+        page_for_navpoint = {}
+        for i in range(len(toc_tree)):
+            current_nav_point = toc_tree[i]
+            next_anchor = None
+            if i != len(toc_tree)-1:
+                next_nav_point = toc_tree[i+1]
+                if current_nav_point.href().split("#")[0] == next_nav_point.href().split("#")[0]:
+                    next_anchor = {"id": next_nav_point.href().split("#")[1], "title": next_nav_point.title()}
+
+            filename = "%s%s" %(content_path, current_nav_point.href().split("#")[0])
+            try:
+                content = archive.read(filename)
+            except Exception:
+                raise InvalidEpubException(
+                    'Could not find file %s in archive even though it was listed in the NCX file' %filename,
+                    archive=self
+                )
+
+            page = self._create_page(
+                current_nav_point.title(),
+                None,
+                current_nav_point.href(),
+                content,
+                self,
+                current_nav_point.order(),
+                next_anchor,
+                page_for_navpoint.get(current_nav_point.parent)
+            )
+            self.pages.append(page)
+            if len(current_nav_point.find_children()) > 0:
+                page_for_navpoint[current_nav_point] = page
+
+
     def _get_content(self, archive, opf, toc, items, content_path):
         # Get all the item references from the <spine>
         refs = opf.getiterator('{%s}itemref' % (NS['opf']) )
@@ -312,15 +351,18 @@ class EpubArchive(object):
                 ))
 
 
-    def _create_page(self, title, idref, filename, f, archive, order):
+    def _create_page(self, title, idref, filename, file_content, archive, order, next_anchor=None, parent_page=None):
         '''Create an HTML page and associate it with the archive'''
         return EpubPage(
                         title=title,
                         idref=idref,
                         filename=filename,
-                        epubfile=f,
+                        file_content=file_content,
                         archive=archive,
-                        order=order)
+                        order=order,
+                        next_anchor=next_anchor,
+                        parent_page=parent_page,
+        )
 
 
     def _get_metadata(self, metadata_tag, opf, plural=False, as_string=False, as_list=False):
@@ -345,7 +387,6 @@ class EpubArchive(object):
             return t
         return text
 
-
     def __unicode__(self):
         return u'%s by %s (%s)' % (self.title, self.author, self.name)
 
@@ -355,17 +396,27 @@ class EpubArchive(object):
 class EpubPage(object):
     '''Usually an individual page in the ebook.'''
     
-    def __init__(self, title, idref, filename, epubfile, archive, order):
+    def __init__(self, title, idref, filename, file_content, archive, order, next_anchor = None, parent_page = None):
         self.title_in_toc = title
         self.idref    = idref
         self.filename = filename
-        self.page_content = epubfile
+        self.page_content = file_content
         self.archive  = archive
         self.order    = order or 1
+        self.current_anchor = None
+        self.parent_page = parent_page
+        self.next_anchor = next_anchor
+        if next_anchor is not None:
+            self.current_anchor = {"title": self.title_in_toc}
+            try:
+                self.current_anchor["id"] = self.filename.split("#")[1]
+            except IndexError:
+                self.current_anchor["id"] = None
         self.page_content_parsed = self.parse_page_content(self.page_content)
         self.title_tag = self.page_content_parsed.find('.//title')
         self.sections = []
         self.parse_sections()
+
 
     def parse_page_content(self, page_content):
         try:
@@ -393,6 +444,26 @@ class EpubPage(object):
 #                # Give up
 #                logging.error("Giving up on this content")
 #                raise UnknownContentException()
+        if self.next_anchor is None:
+            return html
+        elements_to_remove = []
+        start_elem = None if self.current_anchor["id"] is None else body.cssselect("#%s" %self.current_anchor["id"])[0]
+        end_elem = body.cssselect("#%s" %self.next_anchor["id"])[0]
+        within_start_and_end_elem = True if start_elem is None else False
+        for elem in body.iter():
+            if elem == start_elem:
+                within_start_and_end_elem = True
+            elif elem == end_elem:
+                within_start_and_end_elem = False
+            if not within_start_and_end_elem and start_elem not in elem.iterchildren() and end_elem not in elem.iterchildren():
+                elements_to_remove.append(elem)
+
+        for elem in elements_to_remove:
+            elem.clear()
+            try:
+                body.remove(elem)
+            except ValueError:
+                pass
         return html
 
     def get_page_title(self):

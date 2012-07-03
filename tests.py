@@ -1,5 +1,5 @@
 from unittest import TestCase
-from epub import EpubPage
+from epub import EpubPage, EpubArchive
 
 class PageSectionTest(TestCase):
     def test_top_level_heading(self):
@@ -54,3 +54,29 @@ class PageSectionTest(TestCase):
 
         self.assertEqual(page.sections[2].title, "The Three States")
         self.assertEqual(page.sections[2].children_sections, [])
+
+class PagesFromNavPointsTest(TestCase):
+    def test_nav_alice_short(self):
+        archive = EpubArchive("test_data/in1.epub", False)
+        self.assertEqual(len(archive.pages), 4) # all pages besides Cover
+
+    def test_nested(self):
+        archive = EpubArchive("test_data/nested_navpoints.epub", False)
+        self.assertEqual(len(archive.pages), 29)
+        self.assertEqual(
+            archive.pages[11].get_page_title(),
+            'Additional SQL Server 2008 R2 Enhancements for DBAs'
+        )
+        self.assertEqual(
+            archive.pages[11].parent_page.get_page_title(),
+            'SQL Server 2008 R2 Enhancements for DBAs'
+        )
+        self.assertEqual(
+            archive.pages[11].parent_page,
+            archive.pages[9]
+        )
+
+class PagesFromSpineTest(TestCase):
+    def test_alice_short(self):
+        archive = EpubArchive("test_data/in1.epub")
+        self.assertEqual(len(archive.pages), 5)
