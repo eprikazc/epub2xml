@@ -75,6 +75,10 @@ class PagesFromNavPointsTest(TestCase):
             archive.pages[11].parent_page,
             archive.pages[9]
         )
+        self.assertEqual(
+            archive.pages[9].children_pages,
+            [archive.pages[10], archive.pages[11]]
+        )
 
 class PagesFromSpineTest(TestCase):
     def test_alice_short(self):

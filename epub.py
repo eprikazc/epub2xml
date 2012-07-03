@@ -280,9 +280,10 @@ class EpubArchive(object):
                 self,
                 current_nav_point.order(),
                 next_anchor,
-                page_for_navpoint.get(current_nav_point.parent)
+                None
             )
             self.pages.append(page)
+            page.bind_to_parent(page_for_navpoint.get(current_nav_point.parent))
             if len(current_nav_point.find_children()) > 0:
                 page_for_navpoint[current_nav_point] = page
 
@@ -415,6 +416,7 @@ class EpubPage(object):
         self.page_content_parsed = self.parse_page_content(self.page_content)
         self.title_tag = self.page_content_parsed.find('.//title')
         self.sections = []
+        self.children_pages = []
         self.parse_sections()
 
 
@@ -575,6 +577,15 @@ class EpubPage(object):
                 element.set('href', '#')
 
         return xhtml
+
+    def bind_to_parent(self, parent_page):
+        self.parent_page = parent_page
+        if parent_page is not None:
+            parent_page.children_pages.append(self)
+
+    def add_children_page(self, children_page):
+        self.children_pages.append(children_page)
+        children_page.parent_page = self
 
 
 class EpubPageSection(object):
