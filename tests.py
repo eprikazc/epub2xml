@@ -76,9 +76,31 @@ class PagesFromNavPointsTest(TestCase):
             archive.pages[9]
         )
         self.assertEqual(
-            archive.pages[9].children_pages,
-            [archive.pages[10], archive.pages[11]]
+            archive.pages[9].parent_page.get_page_title(),
+            "CHAPTER 1 SQL Server 2008 R2 Editions and Enhancements"
         )
+        self.assertEqual(
+            archive.pages[9].parent_page,
+            archive.pages[8]
+        )
+        self.assertEqual(
+            archive.pages[8].parent_page.get_page_title(),
+            "Part I Database Administration"
+        )
+        self.assertEqual(
+            archive.pages[8].parent_page,
+            archive.pages[7]
+        )
+        self.assertEqual(
+            archive.pages[7].parent_page,
+            None
+        )
+        self.assertEqual(
+            [p.get_page_title() for p in archive.pages[7].children_pages],
+            ["CHAPTER 1 SQL Server 2008 R2 Editions and Enhancements", "CHAPTER 10 Self-Service Analysis with PowerPivot"]
+        )
+
+
 
 class PagesFromSpineTest(TestCase):
     def test_alice_short(self):
