@@ -57,10 +57,10 @@ class PageSectionTest(TestCase):
 
 class PagesFromNavPointsTest(TestCase):
     def test_nav_alice_short(self):
-        archive = EpubArchive("test_data/in1.epub", False)
-        self.assertEqual(len(archive.pages), 4) # all pages besides Cover
+        simple_archive = EpubArchive("test_data/in1.epub", False)
+        self.assertEqual(len(simple_archive.pages), 4) # all pages besides Cover
 
-    def test_nested(self):
+    def test_nested_pages(self):
         archive = EpubArchive("test_data/nested_navpoints.epub", False)
         self.assertEqual(len(archive.pages), 29)
         self.assertEqual(
@@ -100,6 +100,48 @@ class PagesFromNavPointsTest(TestCase):
             ["CHAPTER 1 SQL Server 2008 R2 Editions and Enhancements", "CHAPTER 10 Self-Service Analysis with PowerPivot"]
         )
 
+    def test_very_first_page_in_doc(self):
+        archive = EpubArchive("test_data/nested_navpoints.epub", False)
+        page = archive.pages[8]
+        self.assertEqual(
+            page.get_page_title(),
+            "CHAPTER 1 SQL Server 2008 R2 Editions and Enhancements"
+        )
+        self.assertEqual(
+            len(page.page_content_parsed.find(".//body")),
+            3 # h2, p, p
+        )
+        self.assertTrue(
+            page.page_content_parsed.find(".//body").text_content().strip().endswith(
+            "installation strategies are also identified."
+        ))
+
+    def test_middle_page(self):
+        archive = EpubArchive("test_data/nested_navpoints.epub", False)
+        page = archive.pages[11]
+        self.assertEqual(
+            page.get_page_title(),
+            "Additional SQL Server 2008 R2 Enhancements for DBAs"
+        )
+        self.assertEqual(
+            len(page.page_content_parsed.find(".//body")),
+            3 # h4, p, ul
+        )
+        self.assertTrue(
+            page.page_content_parsed.find(".//body").text_content().strip().endswith(
+            "operating systems that support Extended Protection."
+        ))
+    def test_very_last_page_in_doc(self):
+        archive = EpubArchive("test_data/nested_navpoints.epub", False)
+        page = archive.pages[18]
+        self.assertEqual(
+            page.get_page_title(),
+            "Side-by-Side Migration"
+        )
+        self.assertTrue(
+            page.page_content_parsed.find(".//body").text_content().strip().endswith(
+                "after the migration is complete."
+            ))
 
 
 class PagesFromSpineTest(TestCase):

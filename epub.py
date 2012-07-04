@@ -257,7 +257,16 @@ class EpubArchive(object):
         page_for_navpoint = {}
         for i in range(len(toc_tree)):
             current_nav_point = toc_tree[i]
+            previous_anchor = None
             next_anchor = None
+            if i != 0:
+                previous_nav_point = toc_tree[i-1]
+                if current_nav_point.href().split("#")[0] == previous_nav_point.href().split("#")[0]:
+                    previous_anchor = {"title": previous_nav_point.title()}
+                    try:
+                        previous_anchor["id"] = previous_nav_point.href().split("#")[1]
+                    except IndexError:
+                        previous_anchor["id"] = None
             if i != len(toc_tree)-1:
                 next_nav_point = toc_tree[i+1]
                 if current_nav_point.href().split("#")[0] == next_nav_point.href().split("#")[0]:
@@ -279,8 +288,8 @@ class EpubArchive(object):
                 content,
                 self,
                 current_nav_point.order(),
-                next_anchor,
-                None
+                previous_anchor,
+                next_anchor
             )
             self.pages.append(page)
             page.bind_to_parent(page_for_navpoint.get(current_nav_point.parent))
@@ -352,7 +361,7 @@ class EpubArchive(object):
                 ))
 
 
-    def _create_page(self, title, idref, filename, file_content, archive, order, next_anchor=None, parent_page=None):
+    def _create_page(self, title, idref, filename, file_content, archive, order, previous_anchor=None, next_anchor=None):
         '''Create an HTML page and associate it with the archive'''
         return EpubPage(
                         title=title,
@@ -361,8 +370,8 @@ class EpubArchive(object):
                         file_content=file_content,
                         archive=archive,
                         order=order,
-                        next_anchor=next_anchor,
-                        parent_page=parent_page,
+                        previous_anchor=previous_anchor,
+                        next_anchor=next_anchor
         )
 
 
@@ -397,7 +406,7 @@ class EpubArchive(object):
 class EpubPage(object):
     '''Usually an individual page in the ebook.'''
     
-    def __init__(self, title, idref, filename, file_content, archive, order, next_anchor = None, parent_page = None):
+    def __init__(self, title, idref, filename, file_content, archive, order, previous_anchor = None, next_anchor = None):
         self.title_in_toc = title
         self.idref    = idref
         self.filename = filename
@@ -405,9 +414,16 @@ class EpubPage(object):
         self.archive  = archive
         self.order    = order or 1
         self.current_anchor = None
-        self.parent_page = parent_page
+        self.parent_page = None
+        self.previous_anchor = previous_anchor
         self.next_anchor = next_anchor
         if next_anchor is not None:
+            self.current_anchor = {"title": self.title_in_toc}
+            try:
+                self.current_anchor["id"] = self.filename.split("#")[1]
+            except IndexError:
+                self.current_anchor["id"] = None
+        elif previous_anchor is not None:
             self.current_anchor = {"title": self.title_in_toc}
             try:
                 self.current_anchor["id"] = self.filename.split("#")[1]
@@ -446,11 +462,11 @@ class EpubPage(object):
 #                # Give up
 #                logging.error("Giving up on this content")
 #                raise UnknownContentException()
-        if self.next_anchor is None:
+        if self.current_anchor is None:
             return html
         elements_to_remove = []
         start_elem = None if self.current_anchor["id"] is None else body.cssselect("#%s" %self.current_anchor["id"])[0]
-        end_elem = body.cssselect("#%s" %self.next_anchor["id"])[0]
+        end_elem = None if self.next_anchor is None else body.cssselect("#%s" %self.next_anchor["id"])[0]
         within_start_and_end_elem = True if start_elem is None else False
         for elem in body.iter():
             if elem == start_elem:
