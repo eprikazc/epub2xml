@@ -143,6 +143,9 @@ class PagesFromNavPointsTest(TestCase):
                 "after the migration is complete."
             ))
 
+    def test_search_headers_by_text(self):
+        archive = EpubArchive("/home/eugene/dev/epub2xml/sicp.epub", False)
+
 
 class PagesFromSpineTest(TestCase):
     def test_alice_short(self):

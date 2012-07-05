@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 #from django.utils.translation import ugettext_lazy as _
+from copy import deepcopy
+import hashlib
 
 from lxml import etree
 #TODO: use => from lxml.html.clean import clean_html
@@ -401,7 +403,27 @@ class EpubArchive(object):
         return u'%s by %s (%s)' % (self.title, self.author, self.name)
 
 
+def normalize_text(text_content):
+    """
+    Replaces "&nbsp;" with spaces and subtitutes multiple spaces with single one
+    """
+    if not isinstance(text_content, unicode):
+        text_content = unicode(text_content, "UTF-8")
+    return " ".join(text_content.replace(u"\u00A0", " ").split())
 
+def find_anchor_by_text(root_elem, text_content, cached_anchors = {}):
+    """
+    Find element with text_content text under root_elem element
+    """
+    root_elem_key = hashlib.sha224(root_elem.text_content().encode("utf-8")).hexdigest()
+    if not cached_anchors.has_key(root_elem_key):
+        cached_anchors[root_elem_key] = {}
+        for header_tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            for elem in root_elem.cssselect("%s>a" %header_tag):
+                cached_anchors[root_elem_key][elem.text_content()] = elem
+    res = cached_anchors[root_elem_key].get(text_content)
+    if res is None:
+        raise Exception("Anchor with title '%s' is not found" %text_content)
 
 class EpubPage(object):
     '''Usually an individual page in the ebook.'''
@@ -410,7 +432,7 @@ class EpubPage(object):
         self.title_in_toc = title
         self.idref    = idref
         self.filename = filename
-        self.page_content = file_content
+        self.page_content = normalize_text(file_content)
         self.archive  = archive
         self.order    = order or 1
         self.current_anchor = None
@@ -435,11 +457,14 @@ class EpubPage(object):
         self.children_pages = []
         self.parse_sections()
 
-
-    def parse_page_content(self, page_content):
+    def parse_page_content(self, page_content, cached_soup = {}):
+        page_key = hashlib.sha224(page_content.encode("utf-8")).hexdigest()
         try:
-            import lxml.html.soupparser
-            html = lxml.html.soupparser.fromstring(page_content)
+            if not cached_soup.has_key(page_key):
+                import lxml.html.soupparser
+                cached_soup[page_key] = lxml.html.soupparser.fromstring(page_content)
+            html = deepcopy(cached_soup[page_key])
+
             body = html.find('.//body')
             if body is None:
                 raise UnknownContentException()
@@ -465,8 +490,21 @@ class EpubPage(object):
         if self.current_anchor is None:
             return html
         elements_to_remove = []
-        start_elem = None if self.current_anchor["id"] is None else body.cssselect("#%s" %self.current_anchor["id"])[0]
-        end_elem = None if self.next_anchor is None else body.cssselect("#%s" %self.next_anchor["id"])[0]
+        if self.current_anchor["id"] is None:
+            start_elem = None
+        else:
+            try:
+                start_elem = body.cssselect("#%s" %self.current_anchor["id"])[0]
+            except IndexError:
+                start_elem = find_anchor_by_text(body, self.current_anchor["title"])
+        if self.next_anchor is None:
+            end_elem = None
+        else:
+            try:
+                end_elem = body.cssselect("#%s" %self.next_anchor["id"])[0]
+            except IndexError:
+                end_elem = find_anchor_by_text(body, self.next_anchor["title"])
+
         within_start_and_end_elem = True if start_elem is None else False
         for elem in body.iter():
             if elem == start_elem:
