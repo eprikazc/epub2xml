@@ -143,8 +143,22 @@ class PagesFromNavPointsTest(TestCase):
                 "after the migration is complete."
             ))
 
+class PagesFromNavPointsByTextTest(TestCase):
     def test_search_headers_by_text(self):
         archive = EpubArchive("/home/eugene/dev/epub2xml/sicp.epub", False)
+        page = archive.pages[5]
+        self.assertEqual(
+            page.get_page_title(),
+            "1.1.2 Naming and the Environment"
+        )
+        self.assertTrue(
+            page.page_content_parsed.find(".//body").text_content().strip().startswith(
+                "1.1.2 Naming and the Environment A critical aspect of a programming language"
+            ))
+        self.assertTrue(
+            page.page_content_parsed.find(".//body").text_content().strip().endswith(
+                "a number of different environments).9"
+            ))
 
 
 class PagesFromSpineTest(TestCase):

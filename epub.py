@@ -411,19 +411,19 @@ def normalize_text(text_content):
         text_content = unicode(text_content, "UTF-8")
     return " ".join(text_content.replace(u"\u00A0", " ").split())
 
-def find_anchor_by_text(root_elem, text_content, cached_anchors = {}):
+def find_anchor_by_text(root_elem, text_content):
     """
     Find element with text_content text under root_elem element
     """
-    root_elem_key = hashlib.sha224(root_elem.text_content().encode("utf-8")).hexdigest()
-    if not cached_anchors.has_key(root_elem_key):
-        cached_anchors[root_elem_key] = {}
-        for header_tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
-            for elem in root_elem.cssselect("%s>a" %header_tag):
-                cached_anchors[root_elem_key][elem.text_content()] = elem
-    res = cached_anchors[root_elem_key].get(text_content)
-    if res is None:
-        raise Exception("Anchor with title '%s' is not found" %text_content)
+    res = root_elem.xpath('//a[text()="%s"]' %text_content)
+    if res:
+        return res[0]
+    for header_tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+        for elem in root_elem.cssselect("%s>a" %header_tag):
+            if elem.text_content() == text_content:
+                return elem
+    raise Exception("Anchor with title '%s' is not found" %text_content)
+
 
 class EpubPage(object):
     '''Usually an individual page in the ebook.'''
@@ -511,9 +511,8 @@ class EpubPage(object):
                 within_start_and_end_elem = True
             elif elem == end_elem:
                 within_start_and_end_elem = False
-            if not within_start_and_end_elem and start_elem not in elem.iterchildren() and end_elem not in elem.iterchildren():
+            if not within_start_and_end_elem and start_elem not in elem.iter():
                 elements_to_remove.append(elem)
-
         for elem in elements_to_remove:
             elem.clear()
             try:
