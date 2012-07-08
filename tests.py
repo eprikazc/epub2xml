@@ -145,7 +145,7 @@ class PagesFromNavPointsTest(TestCase):
 
 class PagesFromNavPointsByTextTest(TestCase):
     def test_search_headers_by_text(self):
-        archive = EpubArchive("/home/eugene/dev/epub2xml/sicp.epub", False)
+        archive = EpubArchive("test_data/sicp.epub", False)
         page = archive.pages[5]
         self.assertEqual(
             page.get_page_title(),
