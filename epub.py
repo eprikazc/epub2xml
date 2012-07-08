@@ -506,12 +506,12 @@ class EpubPage(object):
                 end_elem = find_anchor_by_text(body, self.next_anchor["title"])
 
         within_start_and_end_elem = True if start_elem is None else False
-        for elem in body.iter():
+        for elem in body.iterdescendants():
             if elem == start_elem:
                 within_start_and_end_elem = True
             elif elem == end_elem:
                 within_start_and_end_elem = False
-            if not within_start_and_end_elem and start_elem not in elem.iter():
+            if not within_start_and_end_elem and start_elem not in elem.iterdescendants():
                 elements_to_remove.append(elem)
         for elem in elements_to_remove:
             elem.clear()
@@ -552,7 +552,7 @@ class EpubPage(object):
         heading_tags = ("h1", "h2", "h3", "h4", "h5", "h6")
         current_section = EpubPageSection(self)
         current_section.bind_to_parent(None)
-        for elem in self.page_content_parsed.find(".//body").iter():
+        for elem in self.page_content_parsed.find(".//body").iterdescendants():
             if elem.tag in heading_tags:
                 heading_text = " ".join([t.strip() for t in elem.itertext()])
                 heading_level = int(elem.tag[1])
@@ -582,10 +582,11 @@ class EpubPage(object):
                 and elem.text.strip()
                 ):
                     current_section.has_text_before_title = True
-                    if (elem.getparent() not in current_section.content_elements
-                        and elem.getparent().tag not in heading_tags # skip children of heading tag, as they are part of the title
-                    ):
-                        current_section.content_elements.append(elem)
+                if ([e for e in elem.iterancestors() if
+                    (e in current_section.content_elements) or # skip children of already included elements
+                    (e.tag in heading_tags)] == [] # skip children of heading tag, as they are part of the title
+                ):
+                    current_section.content_elements.append(elem)
 
     # XHTML content that has been sanitized.  This isn't done until
     # the user requests to access the file or until the automated
@@ -648,9 +649,12 @@ class EpubPageSection(object):
         self.title = None
         self.title_level = 0
         self.parent_section = None
-        self.children_sections = []
         self.content_elements = []
         self.page = page
+
+    @property
+    def children_sections(self):
+        return [elem for elem in self.content_elements if isinstance(elem, EpubPageSection)]
 
     def bind_to_parent(self, parent_section):
         """Binds current section to some parent section. If parent section is None - bind it to page itself"""
@@ -658,7 +662,7 @@ class EpubPageSection(object):
         if parent_section is None:
             self.page.sections.append(self)
         else:
-            parent_section.children_sections.append(self)
+            parent_section.content_elements.append(self)
 
     def find_ancestor_with_title_level_less_than(self, level):
         """Does what function name says. Result is used as parent for new section with title_level = level"""

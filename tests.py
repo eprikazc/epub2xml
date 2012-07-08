@@ -1,6 +1,12 @@
 from unittest import TestCase
 from epub import EpubPage, EpubArchive
 
+class PageContentElementTest(TestCase):
+    def test_(self):
+        in_html = open("test_data/page_content_elements/1.html").read()
+        page = EpubPage(None, None, None, in_html, None, None)
+        self.assertEqual(len(page.sections[0].content_elements), 3)
+
 class PageSectionTest(TestCase):
     def test_top_level_heading(self):
         in_html = open("test_data/page_sections/in1.html").read()
@@ -10,6 +16,7 @@ class PageSectionTest(TestCase):
         nested_sections = page.sections[0].children_sections
         self.assertEqual(5, len(nested_sections))
         self.assertEqual(nested_sections[0].title, "Snapshots, Not Differences")
+        self.assertEqual(len(nested_sections[0].content_elements), 1)
         self.assertEqual(nested_sections[1].title, "Nearly Every Operation Is Local")
         self.assertEqual(nested_sections[2].title, "Git Has Integrity")
         self.assertEqual(nested_sections[3].title, "Git Generally Only Adds Data")
