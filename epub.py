@@ -583,7 +583,7 @@ class EpubPage(object):
                 ):
                     current_section.has_text_before_title = True
                 if ([e for e in elem.iterancestors() if
-                    (e in current_section.content_elements) or # skip children of already included elements
+                    (e in current_section.content_elements) or # skip children of elements already included to current section
                     (e.tag in heading_tags)] == [] # skip children of heading tag, as they are part of the title
                 ):
                     current_section.content_elements.append(elem)
