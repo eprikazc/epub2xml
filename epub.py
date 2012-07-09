@@ -411,18 +411,28 @@ def normalize_text(text_content):
         text_content = unicode(text_content, "UTF-8")
     return " ".join(text_content.replace(u"\u00A0", " ").split())
 
-def find_anchor_by_text(root_elem, text_content):
+def find_anchor_by_id_or_text(root_elem, element_id, text_content):
     """
-    Find element with text_content text under root_elem element
+    Find element with given id or text content under root_elem element
     """
-    res = root_elem.xpath('//a[text()="%s"]' %text_content)
-    if res:
-        return res[0]
-    for header_tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
-        for elem in root_elem.cssselect("%s>a" %header_tag):
-            if elem.text_content() == text_content:
-                return elem
-    raise Exception("Anchor with title '%s' is not found" %text_content)
+    res = None
+    try:
+        res = root_elem.cssselect("#%s" %element_id)[0]
+    except IndexError:
+        try:
+            res = root_elem.xpath('//a[text()="%s"]' %text_content)[0]
+        except IndexError:
+            for header_tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+                for elem in root_elem.cssselect("%s a" %header_tag):
+                    if elem.text_content() == text_content:
+                        res = elem
+                        break
+    if res is None:
+        raise Exception("Anchor with id '%s' or title '%s' is not found" %(element_id, text_content))
+    # if anchor is sealed to heading tag or div or ... Then we pick the sealing element
+    while len([elem for elem in res.getparent().iterchildren()]) == 1:
+        res = res.getparent()
+    return res
 
 
 class EpubPage(object):
@@ -493,17 +503,11 @@ class EpubPage(object):
         if self.current_anchor["id"] is None:
             start_elem = None
         else:
-            try:
-                start_elem = body.cssselect("#%s" %self.current_anchor["id"])[0]
-            except IndexError:
-                start_elem = find_anchor_by_text(body, self.current_anchor["title"])
+            start_elem = find_anchor_by_id_or_text(body, self.current_anchor["id"], self.current_anchor["title"])
         if self.next_anchor is None:
             end_elem = None
         else:
-            try:
-                end_elem = body.cssselect("#%s" %self.next_anchor["id"])[0]
-            except IndexError:
-                end_elem = find_anchor_by_text(body, self.next_anchor["title"])
+            end_elem = find_anchor_by_id_or_text(body, self.next_anchor["id"], self.next_anchor["title"])
 
         within_start_and_end_elem = True if start_elem is None else False
         for elem in body.iterdescendants():

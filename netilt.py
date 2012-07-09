@@ -52,6 +52,9 @@ class NetiltDoc(object):
                 page_root_elem.append(chapter_elem)
                 self.chapter_elements[page] = chapter_elem
                 page_root_elem = chapter_elem
+            else:
+                if page.get_page_title() is not None:
+                    add_element_with_text(page_elem, "title", page.get_page_title())
             page_root_elem.append(page_elem)
             for section in page.sections:
                 page_elem.append(epub_page_section_to_netilt(section, "section"))

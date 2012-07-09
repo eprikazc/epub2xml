@@ -91,6 +91,14 @@ class PagesFromNavPointsTest(TestCase):
             archive.pages[8]
         )
         self.assertEqual(
+            len(archive.pages[8].sections),
+            1
+        )
+        self.assertEqual(
+            len(archive.pages[8].sections[0].children_sections),
+            0
+        )
+        self.assertEqual(
             archive.pages[8].parent_page.get_page_title(),
             "Part I Database Administration"
         )
@@ -166,6 +174,15 @@ class PagesFromNavPointsByTextTest(TestCase):
             page.page_content_parsed.find(".//body").text_content().strip().endswith(
                 "a number of different environments).9"
             ))
+        self.assertEqual(
+            len(page.sections),
+            1
+        )
+        self.assertEqual(
+            len(page.sections[0].children_sections),
+            0
+        )
+
 
 
 class PagesFromSpineTest(TestCase):
