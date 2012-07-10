@@ -1,5 +1,6 @@
 from unittest import TestCase
 from epub import EpubPage, EpubArchive
+from netilt import NetiltDoc
 
 class PageContentElementTest(TestCase):
     def test_(self):
@@ -184,8 +185,50 @@ class PagesFromNavPointsByTextTest(TestCase):
         )
 
 
-
 class PagesFromSpineTest(TestCase):
     def test_alice_short(self):
         archive = EpubArchive("test_data/in1.epub")
         self.assertEqual(len(archive.pages), 5)
+
+class NetiltDocTest(TestCase):
+    def test_navpoints_page_title(self):
+        netilt_xml = NetiltDoc("test_data/nested_navpoints.epub").get_netilt_xml(False)
+        self.assertEqual(
+            netilt_xml.findall(".//page")[9].find("title").text,
+            "Overview"
+        )
+        self.assertEqual(
+            netilt_xml.findall(".//page")[10].find("title").text,
+            "Application and Multi-Server Administration Enhancements"
+        )
+    def test_spine_page_title(self):
+        netilt_xml = NetiltDoc("test_data/nested_navpoints.epub").get_netilt_xml(True)
+        self.assertEqual(
+            netilt_xml.findall(".//page")[9].find("title").text,
+            "CHAPTER 2 Multi-Server Administration"
+        )
+        self.assertEqual(
+            netilt_xml.findall(".//page")[10].find("title").text,
+            "CHAPTER 3 Data-Tier Applications"
+        )
+
+    def _check_subsection(self, netilt_xml):
+        subsection = netilt_xml.findall(".//subsection")[0]
+        self.assertEqual(
+            subsection.find("title").text,
+            'Who Is This Book For?'
+        )
+        sections = [elem for elem in subsection.iterancestors("section")]
+        self.assertEqual(len(sections), 1)
+        section = sections[0]
+        self.assertIsNone(section.find("title"))
+        pages = [elem for elem in section.iterancestors("page")]
+        self.assertEqual(len(sections), 1)
+        page = pages[0]
+        self.assertEqual(page.find("title").text, "Introduction")
+    def test_navpoints_subsection_title(self):
+        netilt_xml = NetiltDoc("test_data/nested_navpoints.epub").get_netilt_xml(False)
+        self._check_subsection(netilt_xml)
+    def test_spine_subsection_title(self):
+        netilt_xml = NetiltDoc("test_data/nested_navpoints.epub").get_netilt_xml(True)
+        self._check_subsection(netilt_xml)

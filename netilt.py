@@ -13,9 +13,9 @@ def add_element_with_text(target_element, tag, text):
     target_element.append(elem)
     return elem
 
-def epub_page_section_to_netilt(section, element_name):
+def epub_page_section_to_netilt(section, element_name, section_order):
     section_elem = etree.Element(element_name)
-    if section.title is not None:
+    if section.title is not None and section_order != 0:
         add_element_with_text(section_elem, "title", section.title)
 
     xhtml_elements = []
@@ -23,7 +23,7 @@ def epub_page_section_to_netilt(section, element_name):
         if isinstance(elem, EpubPageSection):
             section_elem.extend(convert_xhtml_elements(xhtml_elements))
             xhtml_elements = []
-            section_elem.append(epub_page_section_to_netilt(elem, "subsection"))
+            section_elem.append(epub_page_section_to_netilt(elem, "subsection", None))
         else:
             xhtml_elements.append(elem)
     section_elem.extend(convert_xhtml_elements(xhtml_elements))
@@ -35,7 +35,8 @@ class NetiltDoc(object):
         self.epub_filename = epub_filename
         self.epub_archive = None
         self.chapter_elements = {}
-    def process(self, use_spine_as_toc):
+
+    def get_netilt_xml(self, use_spine_as_toc):
         self.epub_archive = EpubArchive(self.epub_filename, use_spine_as_toc)
         document = etree.Element("document")
         add_element_with_text(document, "title", self.epub_archive.title)
@@ -56,7 +57,9 @@ class NetiltDoc(object):
                 if page.get_page_title() is not None:
                     add_element_with_text(page_elem, "title", page.get_page_title())
             page_root_elem.append(page_elem)
-            for section in page.sections:
-                page_elem.append(epub_page_section_to_netilt(section, "section"))
+            for index, section in enumerate(page.sections):
+                page_elem.append(epub_page_section_to_netilt(section, "section", index))
+        return document
 
-        return etree.tostring(document, xml_declaration=True, encoding="UTF-8", pretty_print=True)
+    def process(self, use_spine_as_toc):
+        return etree.tostring(self.get_netilt_xml(use_spine_as_toc), xml_declaration=True, encoding="UTF-8", pretty_print=True)
