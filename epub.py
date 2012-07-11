@@ -540,13 +540,16 @@ class EpubPage(object):
         4. Use the name from the spine
         """
         if [page.title_tag.text for page in self.archive.pages].count(self.title_tag.text) == 1:
-            return self.title_tag.text
+            title =  self.title_tag.text
         elif len(self.sections) == 1 and self.sections[0].title:
-            return self.sections[0].title
+            title = self.sections[0].title
         elif self.title_in_toc:
-            return self.title_in_toc
+            title = self.title_in_toc
         else:
-            return self.idref
+            title = self.idref
+        if isinstance(title, str):
+            title = title.strip()
+        return title
 
 
     def parse_sections(self):

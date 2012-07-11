@@ -35,11 +35,11 @@ def get_netilt_doc_structure(netilt_doc):
         if elem.tag not in ("chapter", "page", "section", "subsection"):
             continue
         elem_string = "+--" * (len([e for e in elem.iterancestors()]) -1)
-        if elem.getchildren()[0].tag == "title" and elem.getchildren()[0].text.strip() != "":
+        if elem.getchildren()[0].tag == "title" and elem.getchildren()[0].text:
             elem_string = "%s%s " %(elem_string, elem.getchildren()[0].text)
         elem_string = "%s(%s)" %(elem_string, elem.tag.upper())
         res = "%s%s\n" %(res, elem_string)
-    return res
+    return res.encode("utf-8")
 
 
 class NetiltDoc(object):
