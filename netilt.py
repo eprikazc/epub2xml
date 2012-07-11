@@ -29,6 +29,18 @@ def epub_page_section_to_netilt(section, element_name, section_order):
     section_elem.extend(convert_xhtml_elements(xhtml_elements))
     return section_elem
 
+def get_netilt_doc_structure(netilt_doc):
+    res = ""
+    for elem in netilt_doc.iter():
+        if elem.tag not in ("chapter", "page", "section", "subsection"):
+            continue
+        elem_string = "+--" * (len([e for e in elem.iterancestors()]) -1)
+        if elem.getchildren()[0].tag == "title" and elem.getchildren()[0].text.strip() != "":
+            elem_string = "%s%s " %(elem_string, elem.getchildren()[0].text)
+        elem_string = "%s(%s)" %(elem_string, elem.tag.upper())
+        res = "%s%s\n" %(res, elem_string)
+    return res
+
 
 class NetiltDoc(object):
     def __init__(self, epub_filename):
