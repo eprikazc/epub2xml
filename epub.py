@@ -214,9 +214,7 @@ class EpubArchive(object):
                 except KeyError:
                     logging.warning("Missing image %s; skipping" % href)
                     continue
-                data = {}
-                data['data'] = None
-                data['file'] = None
+                data = {'data': None, 'file': None}
 
                 if item.get('media-type') == constants.SVG_MIMETYPE:
                     data['file'] = unicode(content, ENC)
@@ -411,28 +409,52 @@ def normalize_text(text_content):
         text_content = unicode(text_content, "UTF-8")
     return " ".join(text_content.replace(u"\u00A0", " ").split())
 
+def get_sealing_element(child_elem):
+    while len([elem for elem in child_elem.getparent().iterchildren()]) == 1:
+        child_elem = child_elem.getparent()
+    return child_elem
+
 def find_anchor_by_id_or_text(root_elem, element_id, text_content):
     """
     Find element with given id or text content under root_elem element
     """
     res = None
-    try:
-        res = root_elem.cssselect("#%s" %element_id)[0]
-    except IndexError:
-        try:
-            res = root_elem.xpath('//a[text()="%s"]' %text_content)[0]
-        except IndexError:
-            for header_tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
-                for elem in root_elem.cssselect("%s a" %header_tag):
-                    if elem.text_content() == text_content:
-                        res = elem
-                        break
-    if res is None:
-        raise Exception("Anchor with id '%s' or title '%s' is not found" %(element_id, text_content))
-    # if anchor is sealed to heading tag or div or ... Then we pick the sealing element
-    while len([elem for elem in res.getparent().iterchildren()]) == 1:
-        res = res.getparent()
-    return res
+    res = root_elem.cssselect("#%s" %element_id)
+    if len(res) == 1:
+        return get_sealing_element(res[0])
+    res = root_elem.xpath('//a[text()="%s"]' %text_content)
+    if len(res) == 1:
+        return get_sealing_element(res[0])
+
+def find_bounding_elements(root_elem, previous_anchor, current_anchor, next_anchor):
+    """
+    Find start and end elements of area enclosed by headings from current_anchor and next_anchor
+    previous_anchor = None or {"id": "some_id_1", "title": "Some Title 1"}
+    current_anchor = None or {"id": "some_id_2", "title": "Some Title 2"}
+    next_anchor = None or {"id": "some_id_3", "title": "Some Title 3"}
+    """
+    start_elem = find_anchor_by_id_or_text(root_elem, current_anchor["id"], current_anchor["title"]) if current_anchor else None
+    end_elem = find_anchor_by_id_or_text(root_elem, next_anchor["id"], next_anchor["title"]) if next_anchor else None
+    if (start_elem is not None) and ((end_elem is not None) or (next_anchor is None)):
+        return (start_elem, end_elem)
+    heading_elements = [el for el in root_elem.iterdescendants() if el.tag in ("h1", "h2", "h3", "h4", "h5", "h6")]
+    headings_text = [el.text_content() for el in heading_elements]
+    expected_headings = []
+    if previous_anchor is not None:
+        expected_headings.append(previous_anchor["title"])
+    if current_anchor is not None:
+        expected_headings.append(current_anchor["title"])
+    if next_anchor is not None:
+        expected_headings.append(next_anchor["title"])
+    # Finding sub-sequence of headings matching expected_headings
+    for i in range(len(heading_elements)):
+        if headings_text[i:i+len(expected_headings)] == expected_headings:
+            current_index = i - 1 if (current_anchor is None) else i if previous_anchor is None else i+1
+            start_elem = None if (current_anchor is None) else heading_elements[current_index]
+            end_elem = heading_elements[current_index + 1] if next_anchor is not None else None
+            return (start_elem, end_elem)
+    raise Exception("Cannot find element for anchor with id '%s' and title '%s'. Headings: '%s'" %(current_anchor["id"], current_anchor["title"], heading_elements))
+
 
 
 class EpubPage(object):
@@ -492,7 +514,6 @@ class EpubPage(object):
 #                body = html.find('.//body')
 #                if body is None:
 #                    raise
-#                import pdb;pdb.set_trace()
 #            except:
 #                # Give up
 #                logging.error("Giving up on this content")
@@ -500,14 +521,7 @@ class EpubPage(object):
         if self.current_anchor is None:
             return html
         elements_to_remove = []
-        if self.current_anchor["id"] is None:
-            start_elem = None
-        else:
-            start_elem = find_anchor_by_id_or_text(body, self.current_anchor["id"], self.current_anchor["title"])
-        if self.next_anchor is None:
-            end_elem = None
-        else:
-            end_elem = find_anchor_by_id_or_text(body, self.next_anchor["id"], self.next_anchor["title"])
+        start_elem, end_elem = find_bounding_elements(body, self.previous_anchor, None if self.current_anchor["id"] is None else self.current_anchor, self.next_anchor)
 
         within_start_and_end_elem = True if start_elem is None else False
         for elem in body.iterdescendants():
